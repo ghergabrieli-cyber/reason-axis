@@ -1,0 +1,13 @@
+{
+  "name": "@reason-axis/content-schemas",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@reason-axis/domain": "workspace:*",
+    "zod": "^4.1.11"
+  },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "devDependencies": { "typescript": "^5.9.2" }
+}
