@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const axes = [
   ["Accuracy", "Measure precision, not guesses."],
   ["Speed", "Build efficient performance under time pressure."],
@@ -15,8 +17,12 @@ export default function HomePage() {
         <p className="tagline">Train. Measure. Improve.</p>
         <p className="lede">Build the skills behind performance.</p>
         <div className="actions">
-          <button>Train my brain</button>
-          <button className="secondary">Prepare for hiring assessments</button>
+          <Link className="pillLink primary" href="/train">
+            Train my brain
+          </Link>
+          <Link className="pillLink secondary" href="/assessments">
+            Prepare for hiring assessments
+          </Link>
         </div>
       </section>
 
