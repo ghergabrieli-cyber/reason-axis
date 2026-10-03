@@ -3,17 +3,17 @@ import Link from "next/link";
 const families = [
   {
     name: "Numerical reasoning",
-    status: "Engine slice live",
+    status: "Adaptive engine live",
     description: "Percentages, ratios, averages, rates and data interpretation.",
   },
   {
     name: "Logical reasoning",
-    status: "Next engine slice",
+    status: "Simulation slice live",
     description: "Rules, constraints, sequencing and elimination.",
   },
   {
     name: "Attention to detail",
-    status: "Next engine slice",
+    status: "Simulation slice live",
     description: "Data checking, discrepancy detection and exact comparison.",
   },
 ];
@@ -48,9 +48,14 @@ export default function AssessmentsPage() {
         ))}
       </section>
 
-      <Link className="pillLink primary inlineAction" href="/train">
-        Start numerical training
-      </Link>
+      <div className="actions">
+        <Link className="pillLink primary" href="/train">
+          Start adaptive training
+        </Link>
+        <Link className="pillLink secondary" href="/simulate">
+          Run timed simulation
+        </Link>
+      </div>
     </main>
   );
 }

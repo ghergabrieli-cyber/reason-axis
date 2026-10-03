@@ -345,3 +345,90 @@ h1 {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+.simulationTopbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  position: sticky;
+  top: 12px;
+  z-index: 5;
+  margin: -20px -20px 28px;
+  padding: 14px 20px;
+  border: 1px solid var(--line);
+  background: rgba(7,17,29,.94);
+  backdrop-filter: blur(16px);
+}
+
+.simulationTopbar > div {
+  display: grid;
+  gap: 4px;
+}
+
+.simulationTopbar span {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.simulationTopbar strong { font-size: 24px; }
+
+.simulationItems {
+  display: grid;
+  gap: 42px;
+}
+
+.simulationItem {
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--line);
+}
+
+.simulationItem:last-child { border-bottom: 0; }
+
+.simulationPrompt {
+  max-width: 900px;
+  margin: 22px 0;
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.25;
+}
+
+.reportList {
+  display: grid;
+  gap: 12px;
+  margin: 32px 0;
+}
+
+.reportItem {
+  padding: 22px;
+  border: 1px solid var(--line);
+  background: rgba(5,11,18,.48);
+}
+
+.reportItem h3 {
+  margin: 12px 0;
+  line-height: 1.4;
+}
+
+.reportMark {
+  width: max-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.goodMark {
+  color: var(--good);
+  border: 1px solid rgba(142,230,197,.4);
+}
+
+.badMark {
+  color: var(--bad);
+  border: 1px solid rgba(255,159,159,.4);
+}
+
+.errorText { color: var(--bad); }
