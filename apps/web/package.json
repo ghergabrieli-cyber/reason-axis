@@ -10,6 +10,7 @@
   "dependencies": {
     "@reason-axis/adaptive-engine": "workspace:*",
     "@reason-axis/content-schemas": "workspace:*",
+    "@reason-axis/database": "workspace:*",
     "@reason-axis/domain": "workspace:*",
     "@reason-axis/item-engine": "workspace:*",
     "@reason-axis/scoring": "workspace:*",

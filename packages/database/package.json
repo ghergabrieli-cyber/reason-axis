@@ -10,7 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:apply-core": "node ./scripts/apply-core-migration.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
