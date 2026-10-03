@@ -300,3 +300,48 @@ h1 {
   .practiceShell { padding-top: 28px; }
   .axisGrid { grid-template-columns: 1fr; }
 }
+
+
+.adaptiveStrip,
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin-bottom: 28px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.adaptiveStrip > div,
+.metricGrid > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  background: rgba(5,11,18,.75);
+}
+
+.adaptiveStrip span,
+.metricGrid span {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.adaptiveStrip strong,
+.metricGrid strong {
+  font-size: 22px;
+}
+
+.adaptiveReason {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 700px) {
+  .adaptiveStrip,
+  .metricGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

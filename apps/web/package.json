@@ -8,9 +8,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@reason-axis/adaptive-engine": "workspace:*",
     "@reason-axis/content-schemas": "workspace:*",
     "@reason-axis/domain": "workspace:*",
     "@reason-axis/item-engine": "workspace:*",
+    "@reason-axis/scoring": "workspace:*",
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

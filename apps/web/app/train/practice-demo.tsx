@@ -1,11 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { decideNextDifficulty, type AdaptiveDecision } from "@reason-axis/adaptive-engine";
 import {
   evaluateAnswer,
   type EvaluationResult,
   type SingleChoiceItem,
 } from "@reason-axis/item-engine";
+import {
+  scoreAttempt,
+  updateSkillState,
+  type SkillState,
+} from "@reason-axis/scoring";
 
 const items: SingleChoiceItem[] = [
   {
@@ -104,22 +110,99 @@ const items: SingleChoiceItem[] = [
       "The rate is 126 ÷ 3.5 = 36 records per hour. Over 5 hours: 36 × 5 = 180.",
     strategy: "Find the unit rate first, then scale.",
   },
+  {
+    id: "nr-weighted-001",
+    type: "single-choice",
+    skill: "numerical.weighted-average",
+    difficulty: 4.5,
+    expectedTimeSeconds: 90,
+    prompt:
+      "A supplier delivers 120 units at €18 each and 80 units at €24 each. What is the weighted average unit cost?",
+    options: [
+      { id: "a", label: "€20.00" },
+      { id: "b", label: "€20.40" },
+      { id: "c", label: "€21.00" },
+      { id: "d", label: "€21.60" },
+    ],
+    correctOptionId: "b",
+    explanation:
+      "Total cost is 120 × 18 + 80 × 24 = 4,080. Divide by 200 units: €20.40.",
+    strategy: "Weight each price by its quantity before averaging.",
+  },
+  {
+    id: "nr-margin-001",
+    type: "single-choice",
+    skill: "numerical.percentages",
+    difficulty: 5,
+    expectedTimeSeconds: 95,
+    prompt:
+      "A product costs €72 and sells for €96. What is the gross margin as a percentage of selling price?",
+    options: [
+      { id: "a", label: "25%" },
+      { id: "b", label: "28%" },
+      { id: "c", label: "30%" },
+      { id: "d", label: "33.3%" },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Gross profit is €24. Margin uses selling price as the denominator: 24 ÷ 96 = 25%.",
+    commonTrap: "Using cost as the denominator, which calculates markup instead of margin.",
+  },
 ];
+
+const initialSkillState: SkillState = {
+  practiceRating: 2.5,
+  evidenceCount: 0,
+  accuracyEma: 0.5,
+  speedEma: 0.5,
+  consistency: 0.5,
+  reliableDifficulty: 1,
+  difficultyPeak: 1,
+};
 
 type AttemptSummary = {
   itemId: string;
   correct: boolean;
   responseTimeMs: number;
+  score: number;
+  speedEfficiency: number;
+  difficulty: number;
 };
 
+function chooseClosestUnseenItem(
+  targetDifficulty: number,
+  attempts: AttemptSummary[],
+  currentId: string,
+) {
+  const seen = new Set(attempts.map((attempt) => attempt.itemId));
+  seen.add(currentId);
+
+  let best: SingleChoiceItem | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (const candidate of items) {
+    if (seen.has(candidate.id)) continue;
+
+    const distance = Math.abs(candidate.difficulty - targetDifficulty);
+    if (distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+
+  return best;
+}
+
 export function PracticeDemo() {
-  const [index, setIndex] = useState(0);
+  const [currentId, setCurrentId] = useState(items[1]?.id ?? "");
   const [selected, setSelected] = useState<string | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
+  const [skillState, setSkillState] = useState<SkillState>(initialSkillState);
+  const [decision, setDecision] = useState<AdaptiveDecision | null>(null);
   const startedAt = useRef(Date.now());
 
-  const item = items[index];
+  const item = items.find((candidate) => candidate.id === currentId);
 
   if (!item) {
     const correctCount = attempts.filter((attempt) => attempt.correct).length;
@@ -135,30 +218,42 @@ export function PracticeDemo() {
               attempts.length /
               1000,
           );
+    const averageScore =
+      attempts.length === 0
+        ? 0
+        : Math.round(
+            (attempts.reduce((sum, attempt) => sum + attempt.score, 0) /
+              attempts.length) *
+              100,
+          );
 
     return (
       <section className="resultPanel" aria-live="polite">
-        <div className="eyebrow">SESSION COMPLETE</div>
+        <div className="eyebrow">ADAPTIVE SESSION COMPLETE</div>
         <h2>{accuracy}% accuracy</h2>
-        <p>
-          {correctCount} of {attempts.length} correct · {averageSeconds}s average
-          response time.
-        </p>
+        <div className="metricGrid">
+          <div><span>Practice score</span><strong>{averageScore}</strong></div>
+          <div><span>Avg response</span><strong>{averageSeconds}s</strong></div>
+          <div><span>Rating</span><strong>{skillState.practiceRating.toFixed(2)}</strong></div>
+          <div><span>Evidence</span><strong>{skillState.evidenceCount}</strong></div>
+        </div>
         <p className="muted">
-          This is the first executable slice. The next integration will persist
-          attempts and update skill state through the scoring and adaptive engines.
+          The sequence was selected from the item pool using your evolving
+          accuracy, efficiency and current challenge level.
         </p>
         <button
           type="button"
           onClick={() => {
-            setIndex(0);
+            setCurrentId(items[1]?.id ?? "");
             setSelected(null);
             setEvaluation(null);
             setAttempts([]);
+            setSkillState(initialSkillState);
+            setDecision(null);
             startedAt.current = Date.now();
           }}
         >
-          Run again
+          Run another adaptive session
         </button>
       </section>
     );
@@ -167,32 +262,88 @@ export function PracticeDemo() {
   function submitAnswer(currentItem: SingleChoiceItem) {
     if (!selected || evaluation) return;
 
+    const responseTimeMs = Date.now() - startedAt.current;
     const result = evaluateAnswer(currentItem, {
       type: "single-choice",
       optionId: selected,
     });
 
-    const responseTimeMs = Date.now() - startedAt.current;
+    const measurement = {
+      correct: result.correct,
+      partialCredit: result.partialCredit,
+      responseTimeMs,
+      expectedTimeMs: currentItem.expectedTimeSeconds * 1000,
+      difficulty: currentItem.difficulty,
+    };
+    const measured = scoreAttempt(measurement);
+    const nextState = updateSkillState(skillState, measurement);
+    const nextAttempts = [
+      ...attempts,
+      {
+        itemId: currentItem.id,
+        correct: result.correct,
+        responseTimeMs,
+        score: measured.score,
+        speedEfficiency: measured.speedEfficiency,
+        difficulty: currentItem.difficulty,
+      },
+    ];
+
+    const recent = nextAttempts.slice(-3);
+    const recentAccuracy =
+      recent.reduce((sum, attempt) => sum + (attempt.correct ? 1 : 0), 0) /
+      recent.length;
+    const recentSpeedEfficiency =
+      recent.reduce((sum, attempt) => sum + attempt.speedEfficiency, 0) /
+      recent.length;
+
+    let consecutiveErrors = 0;
+    for (let i = nextAttempts.length - 1; i >= 0; i -= 1) {
+      if (nextAttempts[i]?.correct) break;
+      consecutiveErrors += 1;
+    }
+
+    const nextDecision = decideNextDifficulty({
+      recentAccuracy,
+      recentSpeedEfficiency,
+      consecutiveErrors,
+      evidenceCount: nextState.evidenceCount,
+      currentDifficulty: currentItem.difficulty,
+    });
+
     setEvaluation(result);
-    setAttempts((current) => [
-      ...current,
-      { itemId: currentItem.id, correct: result.correct, responseTimeMs },
-    ]);
+    setAttempts(nextAttempts);
+    setSkillState(nextState);
+    setDecision(nextDecision);
   }
 
-  function nextItem() {
-    setIndex((current) => current + 1);
+  function nextItem(currentItem: SingleChoiceItem) {
+    if (attempts.length >= 5) {
+      setCurrentId("");
+      return;
+    }
+
+    const target = decision?.nextDifficulty ?? currentItem.difficulty;
+    const next = chooseClosestUnseenItem(target, attempts, currentItem.id);
+
+    setCurrentId(next?.id ?? "");
     setSelected(null);
     setEvaluation(null);
+    setDecision(null);
     startedAt.current = Date.now();
   }
 
   return (
     <section className="practiceCard">
+      <div className="adaptiveStrip" aria-label="Adaptive session status">
+        <div><span>Rating</span><strong>{skillState.practiceRating.toFixed(2)}</strong></div>
+        <div><span>Accuracy EMA</span><strong>{Math.round(skillState.accuracyEma * 100)}%</strong></div>
+        <div><span>Speed EMA</span><strong>{Math.round(skillState.speedEma * 100)}%</strong></div>
+        <div><span>Evidence</span><strong>{skillState.evidenceCount}</strong></div>
+      </div>
+
       <div className="questionMeta">
-        <span>
-          Item {index + 1} / {items.length}
-        </span>
+        <span>Attempt {attempts.length + 1} / 5</span>
         <span>Difficulty {item.difficulty.toFixed(1)} / 7</span>
         <span>Target {item.expectedTimeSeconds}s</span>
       </div>
@@ -231,13 +382,18 @@ export function PracticeDemo() {
           {item.commonTrap ? (
             <p className="muted">Common trap: {item.commonTrap}</p>
           ) : null}
+          {decision ? (
+            <p className="adaptiveReason">
+              Next adjustment: <strong>{decision.action}</strong> · {decision.reason}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
       <div className="questionActions">
         {evaluation ? (
-          <button type="button" onClick={nextItem}>
-            {index === items.length - 1 ? "See results" : "Next item"}
+          <button type="button" onClick={() => nextItem(item)}>
+            {attempts.length >= 5 ? "See session analysis" : "Next adaptive item"}
           </button>
         ) : (
           <button
