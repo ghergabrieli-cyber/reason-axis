@@ -120,11 +120,13 @@ export function PracticeDemo() {
   const startedAt = useRef(Date.now());
 
   const item = items[index];
-  const finished = index >= items.length;
 
-  if (finished) {
+  if (!item) {
     const correctCount = attempts.filter((attempt) => attempt.correct).length;
-    const accuracy = Math.round((correctCount / attempts.length) * 100);
+    const accuracy =
+      attempts.length === 0
+        ? 0
+        : Math.round((correctCount / attempts.length) * 100);
     const averageSeconds =
       attempts.length === 0
         ? 0
@@ -162,12 +164,10 @@ export function PracticeDemo() {
     );
   }
 
-  if (!item) return null;
-
-  function submitAnswer() {
+  function submitAnswer(currentItem: SingleChoiceItem) {
     if (!selected || evaluation) return;
 
-    const result = evaluateAnswer(item, {
+    const result = evaluateAnswer(currentItem, {
       type: "single-choice",
       optionId: selected,
     });
@@ -176,7 +176,7 @@ export function PracticeDemo() {
     setEvaluation(result);
     setAttempts((current) => [
       ...current,
-      { itemId: item.id, correct: result.correct, responseTimeMs },
+      { itemId: currentItem.id, correct: result.correct, responseTimeMs },
     ]);
   }
 
@@ -240,7 +240,11 @@ export function PracticeDemo() {
             {index === items.length - 1 ? "See results" : "Next item"}
           </button>
         ) : (
-          <button type="button" onClick={submitAnswer} disabled={!selected}>
+          <button
+            type="button"
+            onClick={() => submitAnswer(item)}
+            disabled={!selected}
+          >
             Check answer
           </button>
         )}
